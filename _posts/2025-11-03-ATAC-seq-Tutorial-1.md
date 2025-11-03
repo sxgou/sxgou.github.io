@@ -1,8 +1,8 @@
 ---
 title: ATAC-seq analysis Tutorial (I)
 date: 2025-11-3 14:08
-categories: [Analysis Tutorial]
-tags: [ATAC-seq, Chromatin]
+categories: [Analysis_Tutorial]
+tags: [atac-seq, chromatin]
 ---
 
 > 代码参考[cuttag文章分析流程推荐的代码](https://yezhengstat.github.io/CUTTag_tutorial/#VII_Visualization)，基于自己的数据和理解，对部分分析内容做了改动。
