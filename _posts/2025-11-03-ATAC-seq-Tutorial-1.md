@@ -1,7 +1,7 @@
 ---
 title: ATAC-seq analysis Tutorial (I)
 date: 2025-11-3 14:08
-categories: [ATAC-seq Tutorial,NGS Tutorial]
+categories: [NGS Tutorial,ATAC-seq Tutorial]
 tags: [atac-seq,chromatin]
 ---
 
