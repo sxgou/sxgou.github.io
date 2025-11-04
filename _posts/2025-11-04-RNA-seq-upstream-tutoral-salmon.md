@@ -184,3 +184,219 @@ AC007322.4,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RPS6P20,511.55699999999996,975.587,1573.53,1309.35,689.59,1340.45,308.182,752.914,217.21400000000003
 OR13I1P,0.986,6.224,20.303,5.135,4.225,10.315,0.0,3.5069999999999997,2.539
 ```
+> # 一个完整的snakemake流程脚本
+```
+from glob import iglob
+import pandas as pd
+
+r1 = iglob('SeqData/RNA/*/*_R1.fq.gz')
+
+sampleInfo = pd.DataFrame()
+sampleInfo['r1'] = [i for i in r1]
+sampleInfo['r1'] = [i for i in r1]
+sampleInfo['name'] = sampleInfo.r1.str.extract('SeqData/RNA/.*/(.*)_R1.fq.gz', expand=True)
+
+rule all:
+        input:
+                "Ref/genemap.txt",
+                "Ref/salmon_index",
+                "qc_metric.txt",
+                "RunData/RNA/Count_matrix.csv",
+                "RunData/RNA/TPM_matrix.csv",
+                "RunData/RNA/FPKM_matrix.csv"
+
+rule buildGM:
+        input:
+                "Ref/GCF_000001635.27_GRCm39_rna.fna.gz"
+        output:
+                "Ref/genemap.txt"
+        shell:
+                '''
+                        zgrep ">" {input} | sed 's/>//g' | sed 's/ .*//g' > Ref/transID.txt
+                        zgrep ">" {input} | sed 's/.*(//g' | sed 's/).*//g' > Ref/geneID.txt
+                        paste -d '\t' Ref/transID.txt Ref/geneID.txt > {output}
+                        rm Ref/transID.txt Ref/geneID.txt
+                '''
+rule buildIndex:
+        input:
+                "Ref/GCF_000001635.27_GRCm39_rna.fna.gz"
+        output:
+                "Ref/salmon_index"
+        threads: 4
+        shell:
+                '''
+                        docker run --rm \
+                        -v /mnt/Data2:/mnt/Data2 \
+                        biodockers/salmon salmon index -p {threads} \
+                        -t $PWD/Ref/GCF_000001635.27_GRCm39_rna.fna.gz \
+                        -i $PWD/Ref/salmon_index -k 31
+                '''
+rule fastp:
+        input:
+                r1 = "SeqData/RNA/{name}/{name}_R1.fq.gz",
+                r2 = "SeqData/RNA/{name}/{name}_R2.fq.gz"
+        output:
+                r1 = "RunData/RNA/Fastp/{name}_R1.fq.gz",
+                r2 = "RunData/RNA/Fastp/{name}_R2.fq.gz"
+        threads: 4
+        shell:
+                '''
+                        docker run --rm --user root \
+                        -v /mnt/Data2:/mnt/Data2 \
+                        biodockers/fastp fastp -w {threads} \
+                        --detect_adapter_for_pe \
+                        --compression=2 \
+                        -i $PWD/SeqData/RNA/{wildcards.name}/{wildcards.name}_R1.fq.gz \
+                        -I $PWD/SeqData/RNA/{wildcards.name}/{wildcards.name}_R2.fq.gz \
+                        -o $PWD/RunData/RNA/Fastp/{wildcards.name}_R1.fq.gz \
+                        -O $PWD/RunData/RNA/Fastp/{wildcards.name}_R2.fq.gz \
+                        -h $PWD/RunData/RNA/Fastp/{wildcards.name}.html \
+                        -j $PWD/RunData/RNA/Fastp/{wildcards.name}.json
+                        -h $PWD/RunData/RNA/Fastp/{wildcards.name}.html \
+                        -j $PWD/RunData/RNA/Fastp/{wildcards.name}.json
+                '''
+rule salmon:
+        input:
+                r1 = "RunData/RNA/Fastp/{name}_R1.fq.gz",
+                r2 = "RunData/RNA/Fastp/{name}_R2.fq.gz",
+                genemap = "Ref/genemap.txt",
+                index = "Ref/salmon_index"
+        output:
+                "RunData/RNA/Salmon/{name}/quant.genes.sf"
+        threads: 4
+        shell:
+                '''
+                        docker run --rm --user root \
+                        -v /mnt/Data2:/mnt/Data2 \
+                        biodockers/salmon salmon quant -p {threads} \
+                        --validateMappings \
+                        -i $PWD/Ref/salmon_index \
+                        -l A -g $PWD/Ref/genemap.txt \
+                        -1 $PWD/RunData/RNA/Fastp/{wildcards.name}_R1.fq.gz \
+                        -2 $PWD/RunData/RNA/Fastp/{wildcards.name}_R2.fq.gz \
+root@insight:/mnt/Data2/home/Goushixue/project-ISSAAC-seq-embryo-test-data# vim Snakefile.rna
+from glob import iglob
+import pandas as pd
+
+r1 = iglob('SeqData/RNA/*/*_R1.fq.gz')
+
+sampleInfo = pd.DataFrame()
+sampleInfo['r1'] = [i for i in r1]
+sampleInfo['name'] = sampleInfo.r1.str.extract('SeqData/RNA/.*/(.*)_R1.fq.gz', expand=True)
+
+rule all:
+        input:
+                "Ref/genemap.txt",
+                "Ref/salmon_index",
+                "qc_metric.txt",
+                "RunData/RNA/Count_matrix.csv",
+                "RunData/RNA/TPM_matrix.csv",
+                "RunData/RNA/FPKM_matrix.csv"
+
+rule buildGM:
+        input:
+                "Ref/GCF_000001635.27_GRCm39_rna.fna.gz"
+        output:
+        output:
+                "Ref/genemap.txt"
+        shell:
+                '''
+                        zgrep ">" {input} | sed 's/>//g' | sed 's/ .*//g' > Ref/transID.txt
+                        zgrep ">" {input} | sed 's/.*(//g' | sed 's/).*//g' > Ref/geneID.txt
+                        paste -d '\t' Ref/transID.txt Ref/geneID.txt > {output}
+                        rm Ref/transID.txt Ref/geneID.txt
+                '''
+rule buildIndex:
+        input:
+                "Ref/GCF_000001635.27_GRCm39_rna.fna.gz"
+        output:
+                "Ref/salmon_index"
+        threads: 4
+        shell:
+                '''
+                        docker run --rm \
+                        -v /mnt/Data2:/mnt/Data2 \
+                        biodockers/salmon salmon index -p {threads} \
+                        -t $PWD/Ref/GCF_000001635.27_GRCm39_rna.fna.gz \
+                        -i $PWD/Ref/salmon_index -k 31
+                '''
+rule fastp:
+        input:
+                r1 = "SeqData/RNA/{name}/{name}_R1.fq.gz",
+                r2 = "SeqData/RNA/{name}/{name}_R2.fq.gz"
+        output:
+                r1 = "RunData/RNA/Fastp/{name}_R1.fq.gz",
+                r2 = "RunData/RNA/Fastp/{name}_R2.fq.gz"
+        threads: 4
+        shell:
+                '''
+                        docker run --rm --user root \
+                        -v /mnt/Data2:/mnt/Data2 \
+                        biodockers/fastp fastp -w {threads} \
+                        --detect_adapter_for_pe \
+                        --compression=2 \
+                        -i $PWD/SeqData/RNA/{wildcards.name}/{wildcards.name}_R1.fq.gz \
+                        -I $PWD/SeqData/RNA/{wildcards.name}/{wildcards.name}_R2.fq.gz \
+                        -o $PWD/RunData/RNA/Fastp/{wildcards.name}_R1.fq.gz \
+                        -O $PWD/RunData/RNA/Fastp/{wildcards.name}_R2.fq.gz \
+                        -h $PWD/RunData/RNA/Fastp/{wildcards.name}.html \
+                        -j $PWD/RunData/RNA/Fastp/{wildcards.name}.json
+                '''
+rule salmon:
+        input:
+                r1 = "RunData/RNA/Fastp/{name}_R1.fq.gz",
+                r2 = "RunData/RNA/Fastp/{name}_R2.fq.gz",
+                genemap = "Ref/genemap.txt",
+                index = "Ref/salmon_index"
+        output:
+                "RunData/RNA/Salmon/{name}/quant.genes.sf"
+        threads: 4
+        shell:
+                '''
+                        docker run --rm --user root \
+                        -v /mnt/Data2:/mnt/Data2 \
+                        biodockers/salmon salmon quant -p {threads} \
+                        --validateMappings \
+                        -i $PWD/Ref/salmon_index \
+                        -l A -g $PWD/Ref/genemap.txt \
+                        -1 $PWD/RunData/RNA/Fastp/{wildcards.name}_R1.fq.gz \
+                        -2 $PWD/RunData/RNA/Fastp/{wildcards.name}_R2.fq.gz \
+                        -o $PWD/RunData/RNA/Salmon/{wildcards.name}
+                '''
+rule qcmetric:
+        input:
+                expand("RunData/RNA/Salmon/{name}/quant.genes.sf", name = sampleInfo['name'])
+        output:
+                "qc_metric.txt"
+        shell:
+                '''
+                        echo -e "Name\tMappingRate\tMappedRead\tTotalReads" > qc_metric.txt
+
+                        for i in RunData/RNA/Salmon/*/logs/salmon_quant.log; \
+                        do name=$(echo $i | sed 's/\/logs.*//g' | sed 's/.*Salmon\///g'); \
+                        mprate=$(grep "Mapping rate" $i | sed 's/.*= //g' | sed 's/\%//g'); \
+                        mpreads=$(grep "Counted" $i | sed 's/.*Counted //g' | sed 's/ total.*//g'); \
+                        ttreads=$(grep "Observed" $i | sed 's/Observed //g' | sed 's/ total.*//g'); \
+                        echo -e "${{name}}\t${{mprate}}\t${{mpreads}}\t${{ttreads}}" >> qc_metric.txt; done
+                '''
+rule getMatrix:
+        input:
+                expand("RunData/RNA/Salmon/{name}/quant.genes.sf", name = sampleInfo['name'])
+        output:
+                "RunData/RNA/TPM_matrix.csv",
+                "RunData/RNA/FPKM_matrix.csv",
+                "RunData/RNA/Count_matrix.csv"
+        run:
+                sample_path = iglob("RunData/RNA/Salmon/*/quant.genes.sf")
+                dfs_mtx = dfs_tpm = dfs_fpkm = []
+                for sp in sample_path:
+                        sample_name = sp.split('/')[-2]
+                        temp_df = pd.read_table(sp, header = 0, sep="\t", index_col = 0)
+                        temp_df['FPKM'] = (temp_df.NumReads / temp_df.NumReads.sum()) / temp_df.EffectiveLength * 10e9
+                        dfs_mtx.append(pd.DataFrame(temp_df.loc[:,"NumReads"]).rename(columns={"NumReads": sample_name}))
+                        dfs_tpm.append(pd.DataFrame(temp_df.loc[:,"TPM"]).rename(columns={"TPM": sample_name}))
+                        dfs_fpkm.append(pd.DataFrame(temp_df.loc[:,"FPKM"]).rename(columns={"FPKM": sample_name}))
+                pd.concat(dfs_mtx, axis=1).to_csv("RunData/RNA/Count_matrix.csv")
+                pd.concat(dfs_tpm, axis=1).to_csv("RunData/RNA/TPM_matrix.csv")
+                pd.concat(dfs_fpkm, axis=1).to_csv("RunData/RNA/FPKM_matrix.csv")
+```
