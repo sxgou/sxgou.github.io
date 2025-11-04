@@ -51,12 +51,15 @@ salmon index -p 4 -t Homo_sapiens.GRCh38.cdna.all.fa.gz -i salmon_index -k 31 --
 <details markdown="1">
 <summary>为什么你的定量结果中没有基因ID?</summary>
 如果定量时不提供转录本ID-基因ID对照表，那么你的定量结果只有转录本水平的定量结果。  
-转录谱文件可以到[Ensembl](http://asia.ensembl.org/info/data/ftp/index.html)下载, 转录谱参考文件内容如下：
+转录谱文件可以到[Ensembl](https://useast.ensembl.org/info/data/ftp/index.html)下载, 转录谱参考文件内容如下：
+  
 ```
 >ENST00000632684.1 cdna chromosome:GRCh38:7:142786213:142786224:1 gene:ENSG00000282431.1 gene_biotype:TR_D_gene transcript_biotype:TR_D_gene gene_symbol:TRBD1 description:T cell receptor beta diversity 1 [Source:HGNC Symbol;Acc:HGNC:12158]
 GGGACAGGGGGC
 ```
+
 第一行是header信息，以`>`开头，第一列 `ENST00000632684.1` 为转录本ID，salmon默认对转录本进行定量，但是一个基因有多个转录本，因此需要把同一基因的各个转录本定量结果合并在一起，所以需要提取一个转录本-基因对应的信息文件。`gene_symbol:TRBD1`中的`TRBD1 `即为基因名字，把第一列和基因列提取出来就行了。
+
 提取命令如下：
 ```
 zgrep ">" Homo_sapiens.GRCh38.cdna.all.fa.gz | sed 's/>//g' | sed 's/cdna.*gene_symbol://g' | sed 's/description.*//g' > gene_map.txt
