@@ -203,7 +203,7 @@ rule all:
         input:
                 "Ref/genemap.txt",
                 "Ref/salmon_index",
-                "qc_metric.txt",
+                "RunData/RNA/Salmon/qc_metric.txt",
                 "RunData/RNA/Count_matrix.csv",
                 "RunData/RNA/TPM_matrix.csv",
                 "RunData/RNA/FPKM_matrix.csv"
@@ -282,7 +282,7 @@ rule qcmetric:
         input:
                 expand("RunData/RNA/Salmon/{name}/quant.genes.sf", name = sampleInfo['name'])
         output:
-                "qc_metric.txt"
+                "RunData/RNA/Salmon/qc_metric.txt"
         shell:
                 '''
                         echo -e "Name\tMappingRate\tMappedRead\tTotalReads" > qc_metric.txt
@@ -292,7 +292,7 @@ rule qcmetric:
                         mprate=$(grep "Mapping rate" $i | sed 's/.*= //g' | sed 's/\%//g'); \
                         mpreads=$(grep "Counted" $i | sed 's/.*Counted //g' | sed 's/ total.*//g'); \
                         ttreads=$(grep "Observed" $i | sed 's/Observed //g' | sed 's/ total.*//g'); \
-                        echo -e "${{name}}\t${{mprate}}\t${{mpreads}}\t${{ttreads}}" >> qc_metric.txt; done
+                        echo -e "${{name}}\t${{mprate}}\t${{mpreads}}\t${{ttreads}}" >> RunData/RNA/Salmon/qc_metric.txt; done
                 '''
 rule getMatrix:
         input:
